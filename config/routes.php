@@ -15,8 +15,6 @@ Router::addRoute(['GET', 'POST', 'HEAD'], '/', 'App\Controller\IndexController@i
 
 Router::addRoute(['GET'], '/balance', 'App\Controller\AccountController::balance');
 
-Router::get('/favicon.ico', function () {
-    return '';
-});
-
 Router::post('/event', 'App\Controller\AccountController@eventBalancer');
+
+Router::post('/reset', 'App\Controller\AccountController@reset' );

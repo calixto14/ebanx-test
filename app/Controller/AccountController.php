@@ -22,12 +22,21 @@ class AccountController extends AbstractController
         $account = AccountModel::find($request['destination']);
 
         if(empty($account)){
-            AccountModel::create(['id'=>$request['destination'], 'amount'=> $request['amount']]);
+            $account = new  AccountModel;  
+
+            $account->id = $request['destination'];
+
+            $account->amount = $request['amount'];
+
+            if($account->save()){
+                $account->id = $request['destination'];
+            }
         }else{
             $account->amount = $account->amount + $request['amount'];
 
             $account->save();
         }
+
         $status = 201;
         $response = ['destination' => 
                         [
@@ -61,12 +70,45 @@ class AccountController extends AbstractController
         $response = 0;
 
         return [$status, $response];
-
     }
 
     public function transfer($request)
     {
+        $accountOrigem = AccountModel::find($request['origin']);
 
+        $accountDestination = AccountModel::find($request['destination']);
+
+        $status = 400;
+
+        $response = 0;
+
+        if(empty($accountOrigem) || empty($accountDestination) || !$this->checkAmount($accountOrigem, $request['amount'])){            
+
+            return [$status, $response];
+        }        
+
+        if(!$this->decremetAmountOfOrigin($accountOrigem, $request['amount'])){
+            return [$status, $response];
+        }
+
+        if(!$this->incrementAmountOfDestination($accountDestination, $request['amount'])){
+            return [$status, $response];
+        }
+
+        $status = 201;
+
+        $response = [
+            "origin"=>[
+                "id"=> $accountOrigem->id,
+                "balance"=>$accountOrigem->amount
+            ],
+            "destination"=>[
+                "id"=> $accountDestination->id,
+                "balance"=>$accountDestination->amount
+            ]
+        ];
+
+        return [$status, $response];
     }
 
     public function balance()
@@ -79,5 +121,39 @@ class AccountController extends AbstractController
             return $this->response->withContent($account->amount)->withStatus(200);
         }
         return $this->response->json(0)->withStatus(400);
+    }
+
+    public function reset()
+    {
+        AccountModel::truncate();
+        return $this->response->json('OK');
+    }
+
+    protected function checkAmount(&$accountOrigem, $transferAmount)
+    {       
+        if($accountOrigem->amount < $transferAmount){
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function decremetAmountOfOrigin(&$account, $amount)
+    {
+        $account->amount -= $amount;
+
+        if($account->save()){
+            return true;
+        }
+        
+    }
+
+    protected function incrementAmountOfDestination(&$account, $amount)
+    {
+        $account->amount += $amount;
+
+        if($account->save()){
+            return true;
+        }
     }
 }
