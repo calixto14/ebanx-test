@@ -13,10 +13,10 @@ use Hyperf\HttpServer\Router\Router;
 
 Router::addRoute(['GET', 'POST', 'HEAD'], '/', 'App\Controller\IndexController@index');
 
+Router::addRoute(['GET'], '/balance', 'App\Controller\AccountController::balance');
+
 Router::get('/favicon.ico', function () {
     return '';
 });
 
 Router::post('/event', 'App\Controller\AccountController@eventBalancer');
-
-Router::get('/balance', 'App\Controller\AccountController@balance');
