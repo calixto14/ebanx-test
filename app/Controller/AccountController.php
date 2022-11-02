@@ -14,7 +14,7 @@ class AccountController extends AbstractController
 
         list($status, $response) = $this->$method($request);
 
-        return $this->response->json($response)->withStatus($status);
+        return $this->response->withContent($response)->withStatus($status);
     }
 
     public function deposit($request)
@@ -38,12 +38,8 @@ class AccountController extends AbstractController
         }
 
         $status = 201;
-        $response = ['destination' => 
-                        [
-                        "id" => $account->id,
-                        "balance" => $account->amount
-                        ]
-                    ];
+        $response = "{\"destination\": {\"id\":\"{$account->id}\", \"balance\":{$account->amount}}}";
+        
 
         return[$status, $response];
        }
@@ -57,17 +53,13 @@ class AccountController extends AbstractController
             $account->save();
 
             $status = 201;
-            $response = [
-                            "origin" => [
-                                "id" => $account->id,
-                                "balance" =>$account->amount
-                            ]
-                        ];
+            $response = "{\"origin\": {\"id\":\"{$account->id}\", \"balance\":{$account->amount}}}";
+            
             return [$status, $response];
         }
 
-        $status = 400;
-        $response = 0;
+        $status = 404;
+        $response = "0";
 
         return [$status, $response];
     }
@@ -76,13 +68,11 @@ class AccountController extends AbstractController
     {
         $accountOrigem = AccountModel::find($request['origin']);
 
-        $accountDestination = AccountModel::find($request['destination']);
+        $status = 404;
 
-        $status = 400;
+        $response = "0";
 
-        $response = 0;
-
-        if(empty($accountOrigem) || empty($accountDestination) || !$this->checkAmount($accountOrigem, $request['amount'])){            
+        if(empty($accountOrigem) || !$this->checkAmount($accountOrigem, $request['amount'])){            
 
             return [$status, $response];
         }        
@@ -91,23 +81,12 @@ class AccountController extends AbstractController
             return [$status, $response];
         }
 
-        if(!$this->incrementAmountOfDestination($accountDestination, $request['amount'])){
-            return [$status, $response];
-        }
+       
 
         $status = 201;
 
-        $response = [
-            "origin"=>[
-                "id"=> $accountOrigem->id,
-                "balance"=>$accountOrigem->amount
-            ],
-            "destination"=>[
-                "id"=> $accountDestination->id,
-                "balance"=>$accountDestination->amount
-            ]
-        ];
-
+        $response = "{\"origin\": {\"id\":\"{$accountOrigem->id}\", \"balance\":{$accountOrigem->amount}}, \"destination\": {\"id\": \"{$request['destination']}\", \"balance\":{$request['amount']}}}";
+        
         return [$status, $response];
     }
 
@@ -118,15 +97,15 @@ class AccountController extends AbstractController
         $account = AccountModel::find($request['account_id']);
 
         if(!empty($account)){            
-            return $this->response->withContent($account->amount)->withStatus(200);
+            return $this->response->json((int)$account->amount)->withStatus(200);
         }
-        return $this->response->json(0)->withStatus(400);
+        return $this->response->json(0)->withStatus(404);
     }
 
     public function reset()
     {
         AccountModel::truncate();
-        return $this->response->json('OK');
+        return $this->response->withContent('OK');
     }
 
     protected function checkAmount(&$accountOrigem, $transferAmount)
